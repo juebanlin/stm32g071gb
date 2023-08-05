@@ -1,6 +1,3 @@
-/target/
 /Cargo.lock
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/stm32g071gb.iml
-/.idea/vcs.xml
+/.idea/
+/target/
