@@ -1,7 +1,9 @@
 [default.general]
-chip = "STM32G071G8Ux"
+chip = "STM32G071GBUx"
+#自动开启调试模式(cargo embed 或者cargo embed --release均有效)
 #[default.rtt]
 #enabled = true
-#cargo embed --config with_rtt to have RTT enabled
+
+#手动开启调试模式 cargo embed with_rtt或者 cargo embed with_rtt --release
 [with_rtt.rtt]
 enabled = true

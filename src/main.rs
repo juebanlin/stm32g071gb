@@ -4,35 +4,24 @@
 extern crate alloc;
 
 use alloc::format;
-use core::alloc::Layout;
 use core::fmt::Write;
 use core::panic::PanicInfo;
+
 use alloc_cortex_m::CortexMHeap;
-use cortex_m::asm;
-use cortex_m::asm::delay;
-use cortex_m::peripheral::SYST;
 use cortex_m_rt::entry;
-use stm32g0xx_hal::i2c::{I2c};
-use stm32g0xx_hal::{cortex_m,timer::Timer, stm32 as device};
-use stm32g0xx_hal::prelude::*;
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X10,mapping::Mapping::Iso8859_1, MonoTextStyleBuilder},
+    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
     text::{Baseline, Text},
 };
-use embedded_graphics::primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle};
 use embedded_hal::Direction;
-use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
-use stm32g0xx_hal::gpio::{OpenDrain, Output, PB6, PB7, PB8, SignalEdge};
-use stm32g0xx_hal::pac::I2C1;
-use stm32g0xx_hal::spi::Mode;
-use stm32g0xx_hal::stm32::EXTI;
-use stm32g0xx_hal::time::MicroSecond;
-use stm32g0xx_hal::timer::delay::Delay;
-
 use rtt_target::{rprintln, rtt_init_print};
+use ssd1306::{I2CDisplayInterface, prelude::*, Ssd1306};
+use stm32g0xx_hal::{cortex_m, stm32 as device};
 use stm32g0xx_hal::analog::dac::GeneratorConfig;
+use stm32g0xx_hal::i2c::I2c;
+use stm32g0xx_hal::prelude::*;
 use stm32g0xx_hal::rcc::Config;
 
 // this is the allocator the application will use
