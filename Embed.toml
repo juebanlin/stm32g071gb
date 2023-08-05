@@ -1,0 +1,7 @@
+[default.general]
+chip = "STM32G071G8Ux"
+#[default.rtt]
+#enabled = true
+#cargo embed --config with_rtt to have RTT enabled
+[with_rtt.rtt]
+enabled = true

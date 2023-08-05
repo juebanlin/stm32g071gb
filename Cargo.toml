@@ -1,0 +1,44 @@
+[package]
+name = "stm32g071gb"
+version = "0.1.0"
+edition = "2021"
+
+[profile.dev]
+opt-level = 3 #调整优化等级
+lto = true
+codegen-units = 1
+incremental = false #禁用增量编译
+
+#如果出现flash overflowed则使用cargo embed --release编译,不用修改memory.x的FLASH : ORIGIN 大小为128K,毕竟某些芯片
+[profile.release]
+strip = true #编译时去掉符号和调试信息
+opt-level = 'z' #调整优化等级
+lto = true  #链接时优化 better optimizations
+codegen-units = 1 #调整并行代码生成单元数量  better optimization
+panic = 'abort' #异常时终止,不打印堆栈
+incremental = false #禁用增量编译
+debug = false # symbols are nice and they don't increase the size on Flash,"true" is ok, symbols reside on the host, not the target
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+
+[dependencies]
+#stm32g0xx-hal会自动依赖一下三个包
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.3"
+embedded-hal = "0.2.7"
+panic-halt = "0.2.0"
+alloc-cortex-m = "0.4.0"
+
+ssd1306 = "0.7.1"
+embedded-graphics = "0.7.1"
+
+#cargo embed + rtt 在主机终端上显示调试信息 rprintln!("Hello, world!");
+rtt-target = "0.4.0"
+
+#OpenOCD+Semihosting 在主机终端上显示调试信息 hprintln!("Hello, world!").unwrap();
+#cortex-m-semihosting = "0.5.0"
+
+[dependencies.stm32g0xx-hal]
+version = "0.2.0"
+features = ["stm32g071","rt"]
