@@ -63,7 +63,7 @@ fn button_demo() -> !{
     let mut rcc = dp.RCC.constrain();
     let mut delay = cp.SYST.delay(&mut rcc);
     let gpioa = dp.GPIOA.split(&mut rcc);
-    //上拉输入,引脚处于高电平 按键接地判定低电平即为按键按下
+    //上拉输入,引脚处于高电平 引脚接按键PIN1,按键PIN2再接低.判定低电平即为按键按下
     let button = gpioa.pa7.into_pull_up_input();
     let mut buttonPress=false;
     loop {
