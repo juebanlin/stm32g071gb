@@ -39,6 +39,8 @@ rtt-target = "0.4.0"
 #OpenOCD+Semihosting 在主机终端上显示调试信息 hprintln!("Hello, world!").unwrap();
 #cortex-m-semihosting = "0.5.0"
 
+micromath = "2.0.0"
+
 [dependencies.stm32g0xx-hal]
 version = "0.2.0"
 features = ["stm32g071","rt"]

@@ -4,6 +4,7 @@
 extern crate alloc;
 
 use alloc::format;
+use micromath::F32Ext;
 use core::alloc::Layout;
 use core::fmt::Write;
 use core::panic::PanicInfo;
@@ -42,6 +43,7 @@ fn oom(_: Layout) -> ! {
 
 #[panic_handler]
 fn panic_(_info:&PanicInfo) -> !{
+    rprintln!("PanicInfo:{}",_info);
     loop {
 
     }
@@ -192,22 +194,54 @@ fn adc()->!{
         let vbat_mv = adc.read_voltage(&mut vbat).expect("adc read failed");
         let pin_mv = adc.read_voltage(&mut adc_pin).expect("adc read failed");
         //10K串联NTC,NTC接GND   VCC--10K--PA0-NTC--GND
-        // let rt=pin_mv/100*(vbat_mv/100-pin_mv/100);
-        // let ntc_tmp=1/(1/298.15+(rt/10)/3950)-273.15;
-        let mut pin_tmp=0;
-        {
-            // let ts_cal1: u32 = unsafe {
-            //     // DS12991 3.14.1
-            //     // at 3000 mV Vref+ and 30 degC
-            //     ptr::read_volatile(0x1FFF_75A8 as *const u16) as u32
-            // };
-            let v30 = 2600; // mV
-            // 2.5 mV/degC
-            pin_tmp= 30 + (v30 as i32 - pin_mv as i32)/3 * 10 / 25;
-        }
-        rprintln!("vref:{} | tmp:{} | VBat: {}mV | PA0: {}mV | pin_tmp:{}",vref,tmp,vbat_mv * 3, pin_mv,pin_tmp);
+        let tmpV1=getTmpV1(vbat_mv * 3,pin_mv);
+        let tmpV2=getTmpV2(vbat_mv * 3,pin_mv);
+        rprintln!("vref:{} | tmp:{} | VBat: {}mV | PA0: {}mV | tmpV1:{} | tmpV2:{}",vref,tmp,vbat_mv * 3, pin_mv,tmpV1,tmpV2);
         delay.delay(1000.millis());
     }
+}
+
+fn getTmpV1(vbat_mV:u16,ntc_mV:u16)->u16{
+    let VCC=vbat_mV as f32 /1000f32;
+    let VOUT=ntc_mV as f32/1000f32;//NTC电阻当前分压值
+
+    let R1=(10*1000)as f32;//10K NTC上方分压定值电阻
+    //电阻分压电路图，分压公式为 VOUT=VCC*R_NTC/(R1+R_NTC);
+    //变形为 R_NTC=VOUT*R1/(VCC-VOUT);
+    let R_NTC=VOUT*R1/(VCC-VOUT);//NTC当前温度下的阻值
+
+    //阻值算温度
+    //T1=1 / ( ln(Rt/R_NTC_25)/B + 1/T2 )
+    let Rt=R_NTC;
+    let R_NTC_25=(50*1000) as f32;//50K 25°时的阻值
+    let K=273.15;
+    let T2=K+25f32;//25°时的开尔文温度
+    let B=3950f32;//NTC b值
+    let T1=1f32 / ( (Rt/R_NTC_25).ln()/B + (1f32/T2) );
+    let tmp=T1-K;
+    rprintln!("VCC:{},VOUT:{},R_NTC:{},tmp:{}",VCC,VOUT,R_NTC,tmp);
+    return tmp as u16;
+}
+
+fn getTmpV2(vbat_mV:u16,ntc_mV:u16)->u16{
+    let VCC=vbat_mV as f32 /1000f32;
+    let VOUT=ntc_mV as f32/1000f32;//NTC电阻当前分压值
+
+    let R1=(10*1000)as f32;//10K NTC上方分压定值电阻
+    //电阻分压电路图，分压公式为 VOUT=VCC*R_NTC/(R1+R_NTC);变形为 R_NTC=VOUT*R1/(VCC-VOUT);
+    let R_NTC=VOUT*R1/(VCC-VOUT);//NTC当前温度下的阻值
+    //阻值算温度
+    //Steinhart-Hart 方程 1/T=A+Bln(R)+C(ln(R))3
+    //https://www.thinksrs.com/downloads/programs/Therm%20Calc/NTCCalibrator/NTCcalculator.htm
+    let A=0.8495270643e-3;
+    let B=2.180262755e-4;
+    let C=1.148651373e-7;
+    let K=273.15;
+    let R=R_NTC.ln();
+    let T1=1f32 /(A+B*R+C*R*R*R);
+    let tmp=T1-K;
+    rprintln!("VCC:{},VOUT:{},R_NTC:{},tmp:{}",VCC,VOUT,R_NTC,tmp);
+    return tmp as u16;
 }
 
 
