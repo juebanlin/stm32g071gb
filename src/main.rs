@@ -19,13 +19,16 @@ use embedded_graphics::{
     prelude::*,
     text::{Baseline, Text},
 };
+use embedded_graphics::primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle};
 use embedded_hal::Direction;
 use rtt_target::{rprintln, rtt_init_print};
 use ssd1306::{I2CDisplayInterface, prelude::*, Ssd1306};
 use stm32g0xx_hal::{cortex_m, stm32 as device};
 use stm32g0xx_hal::analog::adc::{OversamplingRatio, Precision, SampleTime, VBat, VTemp};
 use stm32g0xx_hal::analog::dac::{Channel1, Enabled, GeneratorConfig};
+use stm32g0xx_hal::gpio::{OpenDrain, Output, PB6, PB7};
 use stm32g0xx_hal::i2c::I2c;
+use stm32g0xx_hal::pac::I2C1;
 use stm32g0xx_hal::prelude::*;
 use stm32g0xx_hal::rcc::Config;
 use stm32g0xx_hal::timer::delay::Delay;
@@ -60,7 +63,7 @@ fn main() -> ! {
     }
     rtt_init_print!();
     rprintln!("rtt init success!");
-    adc();
+    oled_demo();
 }
 
 fn button_demo() -> !{
@@ -245,6 +248,7 @@ fn getTmpV2(vbat_mV:u16,ntc_mV:u16)->u16{
 }
 
 
+
 fn oled_demo()->!{
     let cp = cortex_m::Peripherals::take().unwrap();
     let dp = device::Peripherals::take().unwrap();
@@ -252,7 +256,6 @@ fn oled_demo()->!{
     let mut delay = cp.SYST.delay(&mut rcc);
 
     let mut gpiob = dp.GPIOB.split(&mut rcc);
-
     //PB6 USART1_TX, TIM1_CH3, TIM16_CH1N, SPI2_MISO, LPTIM1_ETR, I2C1_SCL, EVENTOUT
     //PB7 USART1_RX, SPI2_MOSI, TIM17_CH1N, LPTIM1_IN2, I2C1_SDA, EVENTOUT
     //PB8 SPI2_SCK, TIM16_CH1, I2C1_SCL, EVENTOUT
@@ -261,44 +264,75 @@ fn oled_demo()->!{
     let sda = gpiob.pb7.into_open_drain_output_in_state(PinState::High);
     let i2c =I2c::i2c1(dp.I2C1,sda,scl,400.kHz(),&mut rcc);
     let interface = I2CDisplayInterface::new(i2c);
+    delay.delay_ms(1000u32);
+    let txt=format!("Hello world!:{}",11);
+    drow(interface,&mut delay);
+    // drowTxt(txt.as_str(),interface);
+    // drowNum(11,interface);
+    loop {
+
+    }
+}
+
+/*
+一个长方形里面绘制一个三角形 正方形 圆形
+ */
+fn drow(interface: I2CInterface<I2c<I2C1, PB7<Output<OpenDrain>>, PB6<Output<OpenDrain>>>>, delay: &mut Delay<SYST>){
     let mut display = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0)
         .into_buffered_graphics_mode();
     display.init().unwrap();
-    let text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X10)
-        .text_color(BinaryColor::On)
+
+    let yoffset = 8;
+    let style = PrimitiveStyleBuilder::new()
+        .stroke_width(1)
+        .stroke_color(BinaryColor::On)
         .build();
-
-    // Configure PB4 as a PWM output
-    let mut pwm = dp.TIM3.pwm(25.kHz(), &mut rcc);
-    let mut pwm_output = pwm.bind_pin(gpiob.pb4);
-    pwm_output.enable();
-    let pwm_output_max_duty = pwm_output.get_max_duty();
-
-    let mut i=0;
+    let mut n=0;
     loop {
-        i+=1;
-        delay.delay_ms(1000u32);
-
-        let mut per1=i%10+1;
-        per1=per1*10;
-        if per1<=50 {
-            per1=10;
-        }else{
-            per1=100;
-        }
-        let per2=per1 as f32/100.0;
-        let duty= pwm_output_max_duty *per2 as u32;
-        pwm_output.set_duty(duty);
-
-        let txt=format!("p:{},{},d:{}",per1,per2,duty);
-        rprintln!("txt:{}",txt);
-        //view
-        display.clear();
-        display.flush().unwrap();
-        Text::with_baseline(&txt, Point::zero(), text_style, Baseline::Top)
+        // screen outline
+        // default display size is 128x64 if you don't pass a _DisplaySize_
+        // enum to the _Builder_ struct
+        Rectangle::new(Point::new(0, 0), Size::new(127, 31))
+            .into_styled(style)
             .draw(&mut display)
             .unwrap();
+
+        // triangle
+        Triangle::new(
+            Point::new(16, 16 + yoffset),
+            Point::new(16 + 16, 16 + yoffset),
+            Point::new(16 + 8, yoffset),
+        )
+            .into_styled(style)
+            .draw(&mut display)
+            .unwrap();
+
+        if n%2==0 {
+            // square
+            Rectangle::new(Point::new(52, yoffset), Size::new_equal(16))
+                .into_styled(style)
+                .draw(&mut display)
+                .unwrap();
+            // circle
+            Circle::new(Point::new(88, yoffset), 16)
+                .into_styled(style)
+                .draw(&mut display)
+                .unwrap();
+        }else{
+            // circle
+            Circle::new(Point::new(52, yoffset), 16)
+                .into_styled(style)
+                .draw(&mut display)
+                .unwrap();
+            // square
+            Rectangle::new(Point::new(88, yoffset), Size::new_equal(16))
+                .into_styled(style)
+                .draw(&mut display)
+                .unwrap();
+        }
         display.flush().unwrap();
+        delay.delay_ms(100u32);
+        display.clear();
+        n+=1;
     }
 }

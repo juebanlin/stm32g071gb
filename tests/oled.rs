@@ -68,7 +68,7 @@ fn oled_demo()->!{
     let mut i=0;
     loop {
         i+=1;
-        hprintln!("{}",i);
+        rprintln!("{}",i);
         delay.delay_ms(1000u32);
     }
 }
